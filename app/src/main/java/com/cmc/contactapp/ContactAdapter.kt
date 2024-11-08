@@ -9,17 +9,14 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.PopupMenu
-import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import com.cmc.contactapp.databinding.ContactItemBinding
 import kotlin.random.Random
 
-class ContactAdapter(private val context: Context) :
-    RecyclerView.Adapter<ContactAdapter.ContactViewHolder>() {
+class ContactAdapter(private val context: MainActivity) : RecyclerView.Adapter<ContactAdapter.ContactViewHolder>() {
     private var contacts: List<Contact> = listOf()
 
-    inner class ContactViewHolder(val binding: ContactItemBinding) :
-        RecyclerView.ViewHolder(binding.root)
+    inner class ContactViewHolder(val binding: ContactItemBinding) : RecyclerView.ViewHolder(binding.root)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ContactViewHolder {
         val binding = ContactItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -55,20 +52,11 @@ class ContactAdapter(private val context: Context) :
     }
 
     private fun showPopupMenu(view: View, phoneNumber: String) {
-        val popup = PopupMenu(
-            context,
-            view
-        )
+        val popup = PopupMenu(context, view)
         popup.inflate(R.menu.menu_item)
         popup.setOnMenuItemClickListener {
             when (it.itemId) {
-                R.id.call -> {
-                    val callIntent = Intent(Intent.ACTION_DIAL).apply {
-                        data = Uri.parse("tel:$phoneNumber")
-                    }
-                    context.startActivity(callIntent)
-                }
-
+                R.id.call -> context.makeCall(phoneNumber)
                 R.id.sms -> {
                     val smsIntent = Intent(Intent.ACTION_SENDTO).apply {
                         data = Uri.parse("smsto:$phoneNumber")
@@ -87,4 +75,3 @@ class ContactAdapter(private val context: Context) :
         return baseColor
     }
 }
-

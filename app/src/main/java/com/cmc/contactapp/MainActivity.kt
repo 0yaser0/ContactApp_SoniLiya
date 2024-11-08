@@ -95,4 +95,29 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
                                 }
                             }
                             pCursor.close()
-                        
+                        }
+                    }
+                }
+            }
+            cursor.close()
+        }
+
+        contactAdapter.setContacts(contactList)
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this)
+    }
+
+    override fun onPermissionsGranted(requestCode: Int, perms: List<String>) {
+        when (requestCode) {
+            123 -> loadContacts()
+            PERMISSIONS_REQUEST_CALL_PHONE -> currentPhoneNumber?.let { makeCall(it) }
+        }
+    }
+
+    override fun onPermissionsDenied(requestCode: Int, perms: List<String>) {
+        Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
+    }
+}
