@@ -1,0 +1,98 @@
+package com.cmc.contactapp
+
+import android.os.Bundle
+import android.provider.ContactsContract
+import android.widget.Toast
+import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.cmc.contactapp.databinding.ActivityMainBinding
+import pub.devrel.easypermissions.EasyPermissions
+import android.Manifest
+import android.content.Intent
+import android.net.Uri
+
+class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
+    private val PERMISSIONS_REQUEST_CALL_PHONE = 124
+    private lateinit var binding: ActivityMainBinding
+    private lateinit var contactAdapter: ContactAdapter
+    private var currentPhoneNumber: String? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        enableEdgeToEdge()
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
+
+        contactAdapter = ContactAdapter(this)
+        binding.recyclerView.layoutManager = LinearLayoutManager(this)
+        binding.recyclerView.adapter = contactAdapter
+
+        if (EasyPermissions.hasPermissions(this, Manifest.permission.READ_CONTACTS)) {
+            loadContacts()
+        } else {
+            EasyPermissions.requestPermissions(
+                this,
+                "This app needs access to your contacts to display them.",
+                123,
+                Manifest.permission.READ_CONTACTS
+            )
+        }
+    }
+
+    fun makeCall(phoneNumber: String) {
+        currentPhoneNumber = phoneNumber
+        if (EasyPermissions.hasPermissions(this, Manifest.permission.CALL_PHONE)) {
+            val callIntent = Intent(Intent.ACTION_CALL).apply {
+                data = Uri.parse("tel:$phoneNumber")
+            }
+            startActivity(callIntent)
+        } else {
+            EasyPermissions.requestPermissions(
+                this,
+                "This app needs access to your phone to make calls.",
+                PERMISSIONS_REQUEST_CALL_PHONE,
+                Manifest.permission.CALL_PHONE
+            )
+        }
+    }
+
+    private fun loadContacts() {
+        val contactList = ArrayList<Contact>()
+        val contentResolver = contentResolver
+        val cursor = contentResolver.query(ContactsContract.Contacts.CONTENT_URI, null, null, null, null)
+
+        if (cursor != null && cursor.count > 0) {
+            while (cursor.moveToNext()) {
+                val idIndex = cursor.getColumnIndex(ContactsContract.Contacts._ID)
+                val nameIndex = cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME)
+                val hasPhoneNumberIndex = cursor.getColumnIndex(ContactsContract.Contacts.HAS_PHONE_NUMBER)
+
+                if (idIndex != -1 && nameIndex != -1 && hasPhoneNumberIndex != -1) {
+                    val id = cursor.getString(idIndex)
+                    val name = cursor.getString(nameIndex)
+                    if (cursor.getInt(hasPhoneNumberIndex) > 0) {
+                        val pCursor = contentResolver.query(
+                            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                            null,
+                            "${ContactsContract.CommonDataKinds.Phone.CONTACT_ID} = ?",
+                            arrayOf(id), null
+                        )
+
+                        if (pCursor != null) {
+                            val phoneNumberIndex = pCursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
+                            if (phoneNumberIndex != -1) {
+                                while (pCursor.moveToNext()) {
+                                    val phoneNumber = pCursor.getString(phoneNumberIndex)
+                                    contactList.add(Contact(id.toInt(), name, phoneNumber))
+                                }
+                            }
+                            pCursor.close()
+                        
